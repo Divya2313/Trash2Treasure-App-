@@ -1,7 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  function loadGapi() {
+    gapi.load('auth2', function() {
+      gapi.auth2.init({
+        client_id: "568198726125-lnqiiue587ri2da7s8pgi385q9hec87r.apps.googleusercontent.com"
+      });
+    });
+  }
+</script>
+
   <!--
+  
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
 
@@ -36,5 +48,24 @@
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAlwqAWnEvXQj3rW13FtGGr-OmRUnPydF8"></script>
+  <!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js"></script>
+
+<script>
+  var firebaseConfig = {
+    apiKey: 'AIzaSyBrsjfsZkbacf3jhZiNZsaomGL2WWBxBjw',
+    appId: '1:568198726125:web:895757f16b31fff336a7e4',
+    messagingSenderId: '568198726125',
+    projectId: 'recycle-app-447304',
+    authDomain: 'recycle-app-447304.firebaseapp.com',
+    storageBucket: 'recycle-app-447304.firebasestorage.app',
+    measurementId: 'G-K92S3LX2TB',
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+
 </body>
 </html>

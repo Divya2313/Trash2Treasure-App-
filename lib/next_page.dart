@@ -1,223 +1,206 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'confirm_order.dart'; // Import the Confirm Order page
+import 'package:http/http.dart' as http;
+import 'confirm_order.dart';
 
 class NextPage extends StatefulWidget {
-  const NextPage({super.key});
+  final Map<String, String> selectedWaste;
+
+  NextPage({required this.selectedWaste});
 
   @override
-  // ignore: library_private_types_in_public_api
   _NextPageState createState() => _NextPageState();
 }
 
 class _NextPageState extends State<NextPage> {
+  TextEditingController addressController = TextEditingController();
   TextEditingController cityController = TextEditingController();
   TextEditingController stateController = TextEditingController();
+  TextEditingController zipController = TextEditingController();
   TextEditingController locationController = TextEditingController();
 
-  // Sample list of cities & states for search suggestions
-  final List<String> cities = [
-    "Madurai", "Tirupur", "Coimbatore", "Chennai", "Mysuru", "Mumbai"
-  ];
-  final List<String> states = [
-    "Tamil Nadu", "Karnataka", "Kerala", "Maharashtra"
-  ];
+  String apiKey = "AIzaSyAlwqAWnEvXQj3rW13FtGGr-OmRUnPydF8"; // Replace with your actual API key
 
-  List<String> citySuggestions = [];
-  List<String> stateSuggestions = [];
-
-  // Fetch live location
   Future<void> _getLiveLocation() async {
-    Position position = await Geolocator.getCurrentPosition(
-        // ignore: deprecated_member_use
-        desiredAccuracy: LocationAccuracy.high);
-    setState(() {
-      locationController.text =
-      "Lat: ${position.latitude}, Lng: ${position.longitude}";
-    });
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      String address =
+          await _getAddressFromLatLng(position.latitude, position.longitude);
+      setState(() {
+        locationController.text = address;
+      });
+    } catch (e) {
+      print("Error getting location: $e");
+      setState(() {
+        locationController.text = "Unable to get location";
+      });
+    }
+  }
+
+  Future<String> _getAddressFromLatLng(double lat, double lng) async {
+    String url =
+        "https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey";
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body);
+      if (data["status"] == "OK") {
+        return data["results"][0]["formatted_address"];
+      }
+    }
+    return "Address not found";
+  }
+
+  Widget _buildTextField(
+      String label, IconData icon, TextEditingController controller,
+      {TextInputType inputType = TextInputType.text, Widget? suffixIcon}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: TextField(
+        controller: controller,
+        keyboardType: inputType,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.green),
+          labelText: label,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300)),
+          suffixIcon: suffixIcon,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Enter Collection Address"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle),
-            onPressed: () {},
-          )
-        ],
         backgroundColor: Colors.green,
+        elevation: 4,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Where should we collect your recyclables?",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-
-            // Collection Address
-            Text("Collection Address"),
-            SizedBox(height: 8),
-            TextField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: "Street Address",
-              ),
-            ),
-            SizedBox(height: 16),
-
-            // City & State Fields
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("City"),
-                      SizedBox(height: 8),
-                      TextField(
-                        controller: cityController,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: "Enter City",
-                        ),
-                        onChanged: (query) {
-                          setState(() {
-                            citySuggestions = cities
-                                .where((city) =>
-                                city.toLowerCase().contains(query.toLowerCase()))
-                                .toList();
-                          });
-                        },
-                      ),
-                      if (citySuggestions.isNotEmpty)
-                        Container(
-                          height: 150, // Fix dropdown size issue
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.grey),
-                          ),
-                          child: ListView(
-                            children: citySuggestions.map((city) {
-                              return ListTile(
-                                title: Text(city),
-                                onTap: () {
-                                  setState(() {
-                                    cityController.text = city;
-                                    citySuggestions = [];
-                                  });
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                    ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.05, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Collection Address Title
+              Row(
+                children: [
+                  Icon(Icons.location_on, color: Colors.green, size: 28),
+                  SizedBox(width: 8),
+                  Text(
+                    "Collection Address",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
+                ],
+              ),
+              SizedBox(height: 10),
+
+              // Address Section
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("State"),
-                      SizedBox(height: 8),
-                      TextField(
-                        controller: stateController,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: "Enter State",
+                child: Column(
+                  children: [
+                    _buildTextField(
+                        "Street Address", Icons.home, addressController),
+                    Row(
+                      children: [
+                        Expanded(
+                            child: _buildTextField(
+                                "City", Icons.location_city, cityController)),
+                        SizedBox(width: 12),
+                        Expanded(
+                            child: _buildTextField(
+                                "State", Icons.map, stateController)),
+                      ],
+                    ),
+                    _buildTextField("Zip Code", Icons.numbers, zipController,
+                        inputType: TextInputType.number),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 16),
+
+              // Live Location Section
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.my_location, color: Colors.green, size: 28),
+                        SizedBox(width: 8),
+                        Text(
+                          "Live Location",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        onChanged: (query) {
-                          setState(() {
-                            stateSuggestions = states
-                                .where((state) =>
-                                state.toLowerCase().contains(query.toLowerCase()))
-                                .toList();
-                          });
-                        },
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    _buildTextField(
+                      "Current Location",
+                      Icons.place,
+                      locationController,
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.gps_fixed, color: Colors.green),
+                        onPressed: _getLiveLocation,
                       ),
-                      if (stateSuggestions.isNotEmpty)
-                        Container(
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.grey),
-                          ),
-                          child: ListView(
-                            children: stateSuggestions.map((state) {
-                              return ListTile(
-                                title: Text(state),
-                                onTap: () {
-                                  setState(() {
-                                    stateController.text = state;
-                                    stateSuggestions = [];
-                                  });
-                                },
-                              );
-                            }).toList(),
-                          ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 30),
+
+              // Place Order Button
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ConfirmOrderPage(
+                          selectedWaste: widget.selectedWaste,
+                          address: addressController.text,
+                          city: cityController.text,
+                          state: stateController.text,
+                          zip: zipController.text,
+                          liveLocation: locationController.text,
                         ),
-                    ],
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 50),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: Colors.green.shade700,
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-
-            // Zip Code
-            Text("Zip Code"),
-            SizedBox(height: 8),
-            TextField(
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: "Enter Zip Code",
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 16),
-
-            // Live Location
-            Text("Location"),
-            SizedBox(height: 8),
-            TextField(
-              controller: locationController,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: "Get the Live Location",
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.gps_fixed, color: Colors.green),
-                  onPressed: _getLiveLocation,
+                  child: Text("Place Order",
+                      style: TextStyle(fontSize: 18, color: Colors.white)),
                 ),
               ),
-            ),
-            SizedBox(height: 30),
 
-            // PLACE ORDER Button
-            Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, // Green button
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ConfirmOrderPage()), // Navigate to Confirm Order Page
-                  );
-                },
-                child: Text(
-                  "Place Order",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-            ),
-          ],
+              SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

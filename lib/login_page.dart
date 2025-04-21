@@ -1,8 +1,67 @@
 import 'package:flutter/material.dart';
-import './auth_service.dart'; // Import authentication service
+import './auth_service.dart'; // Import AuthService
+import 'login_user_industry.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  bool _isSigningIn = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isSigningIn = true;
+    });
+
+    final userCredential = await AuthService().signInWithGoogle();
+
+    setState(() {
+      _isSigningIn = false;
+    });
+
+    if (userCredential != null) {
+      print("✅ User Signed In: ${userCredential.user?.displayName}");
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginUserIndustry()),
+      );
+    } else {
+      print("❌ Google Sign-In Failed");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Google Sign-In Failed"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _handleLogin() {
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
+
+    if (email.isNotEmpty && password.isNotEmpty) {
+      // TODO: Implement actual login authentication
+      print("✅ Login Successful: $email");
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginUserIndustry()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Please enter email and password"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +86,7 @@ class LoginPage extends StatelessWidget {
 
                 // Email Input Field
                 TextField(
+                  controller: _emailController,
                   decoration: InputDecoration(
                     hintText: 'Enter Email',
                     filled: true,
@@ -40,6 +100,7 @@ class LoginPage extends StatelessWidget {
 
                 // Password Input Field
                 TextField(
+                  controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     hintText: 'Enter Password',
@@ -61,12 +122,10 @@ class LoginPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/roleSelection');
-                  },
+                  onPressed: _handleLogin,
                   child: Text('LOGIN', style: TextStyle(color: Colors.white)),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 20),
 
                 // Sign Up Navigation
                 TextButton(
@@ -92,39 +151,24 @@ class LoginPage extends StatelessWidget {
                 SizedBox(height: 10),
 
                 // Google Sign-In Button
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      side: BorderSide(color: Colors.green),
-                    ),
-                  ),
-                  onPressed: () async {
-                    final userCredential =
-                        await AuthService().signInWithGoogle();
-
-                    if (userCredential != null) {
-                      print(
-                          "✅ User Signed In: ${userCredential.user?.displayName}");
-                      Navigator.pushNamed(context,
-                          '/roleSelection'); // Navigate after successful login
-                    } else {
-                      print("❌ Google Sign-In Failed");
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Google Sign-In Failed"),
-                          backgroundColor: Colors.red,
+                _isSigningIn
+                    ? CircularProgressIndicator()
+                    : ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            side: BorderSide(color: Colors.green),
+                          ),
                         ),
-                      );
-                    }
-                  },
-                  icon: Image.asset('assets/images/google_logo.png',
-                      height: 24, width: 24),
-                  label: Text('Continue with Google',
-                      style: TextStyle(color: Colors.black)),
-                ),
+                        onPressed: _handleGoogleSignIn,
+                        icon: Image.asset('assets/images/google_logo.png',
+                            height: 24, width: 24),
+                        label: Text('Continue with Google',
+                            style: TextStyle(color: Colors.black)),
+                      ),
               ],
             ),
           ),

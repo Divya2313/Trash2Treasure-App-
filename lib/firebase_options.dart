@@ -89,4 +89,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'recycle-app-447304.firebasestorage.app',
     measurementId: 'G-CWWHTKL4BS',
   );
+
 }

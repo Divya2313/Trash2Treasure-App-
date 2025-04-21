@@ -1,10 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter_web/google_maps_flutter_web.dart';
 import 'start_page.dart';
 import 'login_page.dart';
 import 'register_page.dart';
 import 'role_selection_page.dart';
 import 'firebase_options.dart';
+import 'locations.dart' as locations;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +34,7 @@ class Trash2TreasureApp extends StatelessWidget {
         '/login': (context) => LoginPage(),
         '/register': (context) => RegisterPage(),
         '/roleSelection': (context) => RoleSelectionPage(),
+        
       },
     );
   }
