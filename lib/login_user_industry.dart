@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:landing_page_app/main.dart';
 import 'role_selection_page.dart';
 import 'industry_registration_page.dart';
+import 'chatbot_button.dart'; // Import the ChatbotButton widget
 
 class LoginUserIndustry extends StatelessWidget {
   const LoginUserIndustry({super.key});
@@ -40,7 +42,9 @@ class LoginUserIndustry extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => RoleSelectionPage()),
+                        builder: (context) =>
+                            const AppWithChatbot(child: RoleSelectionPage()),
+                      ),
                     );
                   },
                   child: const Text('LOGIN AS USER',
@@ -62,7 +66,8 @@ class LoginUserIndustry extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => IndustryRegistrationPage()),
+                        builder: (context) => IndustryRegistrationPage(),
+                      ),
                     );
                   },
                   child: const Text('LOGIN AS INDUSTRY',

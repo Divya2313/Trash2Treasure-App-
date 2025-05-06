@@ -7,6 +7,7 @@ import 'ewaste_info_page.dart';
 import 'metals_info_page.dart';
 import 'organic_info_page.dart';
 import 'bio_info_pafe.dart';
+import 'ai_upcycling_idea_page.dart';
 
 class RoleSelectionPage extends StatelessWidget {
   const RoleSelectionPage({super.key});
@@ -56,11 +57,11 @@ class RoleSelectionPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => IdentifyWasteCategoryPage()),
+                          builder: (context) => AIUpcyclingIdeaPage()),
                     );
                   },
                   child: const RoleCard(
-                      icon: Icons.apartment, text: "AI Waste Classifier"),
+                      icon: Icons.apartment, text: "AI Waste Upcycling Ideas"),
                 ),
               ],
             ),
