@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:audioplayers/audioplayers.dart';
-import 'dart:html' as html;
+import 'dart:html' as html; // Only for web
 
 class AIUpcyclingIdeaPage extends StatefulWidget {
   const AIUpcyclingIdeaPage({super.key});
@@ -28,7 +27,6 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
   File? _imageFile;
   Uint8List? _webImageBytes;
 
-  // Pick image (gallery)
   Future<void> _pickImage() async {
     final XFile? pickedFile =
         await _picker.pickImage(source: ImageSource.gallery);
@@ -49,7 +47,6 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
     }
   }
 
-  // Upload image to backend
   Future<void> _uploadImage({File? imageFile, Uint8List? webImageBytes}) async {
     setState(() {
       isLoading = true;
@@ -58,10 +55,10 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
       audioFile = '';
     });
 
-    final url = Uri.parse('http://192.168.29.102:5000/process-image');
+    final url = Uri.parse('http://192.168.178.96:5000/process-image');
 
     try {
-      late http.Response response;
+      http.Response response;
 
       if (kIsWeb) {
         final base64Image = base64Encode(webImageBytes!);
@@ -71,12 +68,13 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
           body: jsonEncode({'image': base64Image}),
         );
       } else {
-        final request = http.MultipartRequest('POST', url)
-          ..files
-              .add(await http.MultipartFile.fromPath('image', imageFile!.path));
-        final streamedResponse = await request.send();
-        final responseData = await streamedResponse.stream.bytesToString();
-        response = http.Response(responseData, streamedResponse.statusCode);
+        final bytes = await imageFile!.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'image': base64Image}),
+        );
       }
 
       if (response.statusCode == 200) {
@@ -99,22 +97,21 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
     }
   }
 
-  // Generate upcycling idea
   Future<void> _generateUpcyclingIdea(String description) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.29.102:5000/generate-upcycling'),
+        Uri.parse('http://192.168.178.96:5000/generate-upcycling'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'description': description}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        upcyclingIdea = data['upcycling_idea'] ?? 'No upcycling idea found';
+        upcyclingIdea = data['upcycling_idea'] ?? 'No idea found';
         await _generateSpeech(upcyclingIdea);
       } else {
         setState(() {
-          upcyclingIdea = 'Failed to generate upcycling idea';
+          upcyclingIdea = 'Failed to generate idea';
         });
       }
     } catch (e) {
@@ -124,11 +121,10 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
     }
   }
 
-  // Generate speech for upcycling idea
   Future<void> _generateSpeech(String text) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.29.102:5000/generate-speech'),
+        Uri.parse('http://192.168.178.96:5000/generate-speech'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'text': text}),
       );
@@ -138,17 +134,17 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
         String audioPath = data['audio_file'];
 
         if (audioPath.startsWith('/')) {
-          audioPath = 'http://192.168.29.102:5000$audioPath';
+          audioPath = 'http://192.168.178.96:5000$audioPath';
         }
 
         setState(() {
           audioFile = audioPath;
         });
 
-        await _playAudio(); // Play audio after generating it
+        await _playAudio();
       } else {
         setState(() {
-          audioFile = 'Failed to generate speech';
+          audioFile = 'Failed to generate audio';
         });
       }
     } catch (e) {
@@ -158,46 +154,25 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
     }
   }
 
-  // Play the generated audio
   Future<void> _playAudio() async {
     if (audioFile.isNotEmpty &&
         !audioFile.startsWith('Error') &&
         !audioFile.startsWith('Failed')) {
       try {
         if (kIsWeb) {
-          // For web, use a simpler HTML AudioElement to play the sound.
-          _playAudioWeb(
-              audioFile); // Call the web-specific audio player function
+          final audioElement = html.AudioElement(audioFile)
+            ..autoplay = true
+            ..controls = false;
+          html.document.body!.append(audioElement);
         } else {
-          // For mobile, use the AudioPlayer plugin.
           await _audioPlayer.stop();
           await _audioPlayer.play(UrlSource(audioFile));
         }
       } catch (e) {
         setState(() {
-          audioFile = 'Error: $e';
+          audioFile = 'Error playing audio: $e';
         });
       }
-    }
-  }
-
-  // Web-specific audio play method
-
-  Future<void> _playAudioWeb(String audioUrl) async {
-    print("Audio URL: $audioUrl"); // Log the URL to ensure it's correct.
-
-    try {
-      final audioElement = html.AudioElement(audioUrl)
-        ..autoplay = true
-        ..loop = false;
-
-      audioElement.onError.listen((event) {
-        print("Error loading audio: ${event.toString()}");
-      });
-
-      await audioElement.play();
-    } catch (e) {
-      print("Error playing audio: $e");
     }
   }
 
@@ -214,73 +189,43 @@ class _AIUpcyclingIdeaPageState extends State<AIUpcyclingIdeaPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Upcycling Idea'),
+        title: const Text("AI Upcycling Idea Generator"),
         backgroundColor: Colors.green,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text(
-              'Upload an image to get AI-generated upcycling ideas.',
-              style: TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _pickImage,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Pick Image'),
+              child: const Text("Pick Image"),
             ),
             const SizedBox(height: 20),
             if (isLoading) ...[
               const CircularProgressIndicator(),
-              const SizedBox(height: 20),
-              const Text('Processing...'),
+              const Text("Processing..."),
             ],
             if (description.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Text(
-                'Description:\n$description',
-                style: const TextStyle(fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
+              Text("Description:\n$description"),
+              const SizedBox(height: 10),
             ],
             if (upcyclingIdea.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Text(
-                'Upcycling Idea:\n$upcyclingIdea',
-                style: const TextStyle(fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
+              Text("Upcycling Idea:\n$upcyclingIdea"),
+              const SizedBox(height: 10),
             ],
             if (audioFile.isNotEmpty &&
-                !audioFile.startsWith('Error') &&
-                !audioFile.startsWith('Failed')) ...[
-              const SizedBox(height: 20),
-              const Text(
-                'Audio Controls',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
+                !audioFile.startsWith("Error") &&
+                !audioFile.startsWith("Failed")) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.play_arrow),
-                    onPressed: _playAudio,
-                    tooltip: 'Play',
-                  ),
+                      icon: const Icon(Icons.play_arrow),
+                      onPressed: _playAudio),
                   IconButton(
-                    icon: const Icon(Icons.pause),
-                    onPressed: _pauseAudio,
-                    tooltip: 'Pause',
-                  ),
+                      icon: const Icon(Icons.pause), onPressed: _pauseAudio),
                   IconButton(
-                    icon: const Icon(Icons.stop),
-                    onPressed: _stopAudio,
-                    tooltip: 'Stop',
-                  ),
+                      icon: const Icon(Icons.stop), onPressed: _stopAudio),
                 ],
               ),
             ],
